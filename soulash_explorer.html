@@ -1,456 +1,532 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Soulash 2 Biome Explorer</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.js"></script>
-    <script src="./SoulashCore2.js"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        background-color: #f4f4f4;
-      }
-      #app {
-        width: 90%;
-        max-width: 800px;
-        text-align: center;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 10px;
-        margin-top: 20px;
-      }
-      .tile {
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        background-color: #fff;
-        cursor: pointer;
-        transition: background-color 0.3s;
-      }
-      .tile:hover {
-        background-color: #e0e0e0;
-      }
-      .resources {
-        margin-top: 20px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        background-color: #fff;
-        text-align: left;
-      }
-      .resource-item {
-        margin-bottom: 10px;
-      }
-      .info-section {
-        text-align: left;
-        background-color: #f8f9fa;
-        border: 1px solid #e1e1e1;
-        padding: 16px;
-        margin-bottom: 16px;
-        border-radius: 4px;
-      }
-    
-      .info-section h2 {
-        margin-top: 0;
-        font-size: 1.5rem;
-      }
-    
-      .info-content p {
-        margin: 8px 0;
-        font-size: 1rem;
-        line-height: 1.5;
-      }
-    
-      .info-content ul {
-        list-style-type: disc;
-        margin-left: 20px;
-      }
-    
-      .info-content li {
-        margin: 4px 0;
-      }
-    
-      .info-content code {
-        font-family: "Courier New", Courier, monospace;
-        background-color: #e9ecef;
-        padding: 2px 4px;
-        border-radius: 4px;
-      }
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Soulash 2 Biome Explorer</title>
+      <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.js"></script>
+      <script src="./SoulashCore2.js"></script>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-direction: column;
+          background-color: #f4f4f4;
+        }
+        #app {
+          width: 90%;
+          max-width: 800px;
+          text-align: center;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* Ensure minimum size per button */
+          gap: 12px; /* Add spacing between buttons */
+          margin-top: 20px;
+        }
+        
+        .capitalize {
+          text-transform: capitalize; /* Convert biome names to uppercase */
+        }
 
-  details {
-    display: block; /* Ensures the details section behaves as a block-level element */
-  }
+        .tile {
+          padding: 10px 15px; /* Increased padding for better spacing */
+          border: 1px solid #ccc;
+          border-radius: 8px; /* Rounded corners */
+          background-color: #ffffff;
+          font-size: 1rem; /* Adjust font size for consistency */
+          font-weight: bold; /* Make text stand out */
+          text-align: center; /* Center-align text */
+          /* Make biome names look uniform */
+          word-wrap: break-word; /* Ensure long words wrap to the next line */
+          overflow: visible; /* Allow text to fully display */
+          white-space: normal; /* Allow text to wrap to multiple lines */
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+          transition: all 0.3s ease; /* Smooth transitions on hover */
+          height: auto; /* Allow buttons to adjust height based on content */
+          display: flex; /* Flexbox for centering text */
+          align-items: center; /* Vertically center text */
+          justify-content: center; /* Horizontally center text */
+        }
+        
+        .tile:hover {
+          background-color: #f0f8ff; /* Light blue hover effect */
+          border-color: #1e90ff; /* Change border color on hover */
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow */
+          transform: scale(1.05); /* Small scale-up effect */
+        }
+        
+        /* Base group (blue) */
+        .tile[data-group="base"] {
+          background-color: #cce5ff;
+          border-color: #b8daff;
+          color: #004085;
+        }
 
-  summary {
-    display: flex; /* Use flexbox for alignment */
-    align-items: center; /* Vertically aligns the arrow and text */
-    cursor: pointer; /* Makes the header clickable */
-    list-style: none; /* Removes the default marker */
-  }
+        /* Food group (green) */
+        .tile[data-group="food"] {
+          background-color: #d4edda;
+          border-color: #c3e6cb;
+          color: #155724;
+        }
 
-  summary::-webkit-details-marker {
-    display: none; /* Removes the default marker (arrow) */
-  }
+        /* Resources group (yellow) */
+        .tile[data-group="resources"] {
+          background-color: #fff3cd;
+          border-color: #ffeeba;
+          color: #856404;
+        }
 
-  summary:before {
-    content: "▶"; /* Right-pointing arrow when collapsed */
-    font-size: 1rem;
-    margin-right: 8px; /* Space between the arrow and the text */
-    transition: transform 0.3s ease; /* Smooth transition for rotation */
-  }
+        /* Producers group (purple) */
+        .tile[data-group="producers"] {
+          background-color: #f5e6ff;
+          border-color: #e6ccff;
+          color: #4c0070;
+        }
 
-  details[open] summary:before {
-    content: "▼"; /* Down-pointing arrow when expanded */
-  }
+        /* Military group (red) */
+        .tile[data-group="military"] {
+          background-color: #f8d7da;
+          border-color: #f5c6cb;
+          color: #721c24;
+        }
 
-  summary h2 {
-    margin: 0; /* Ensures proper alignment with the arrow */
-    font-size: 1.5rem; /* Adjust header size as needed */
-  }
-</style>
+          /* Crafters group (orange) */
+        .tile[data-group="crafters"] {
+          background-color: #ffe5d1;
+          border-color: #ffd1b3;
+          color: #703800;
+        }
+        
+        .resources {
+          margin-top: 20px;
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          background-color: #fff;
+          text-align: left;
+        }
+        .resource-item {
+          margin-bottom: 10px;
+        }
+        .info-section {
+          text-align: left;
+          background-color: #f8f9fa;
+          border: 1px solid #e1e1e1;
+          padding: 16px;
+          margin-bottom: 16px;
+          border-radius: 4px;
+        }
+      
+        .info-section h2 {
+          margin-top: 0;
+          font-size: 1.5rem;
+        }
+      
+        .info-content p {
+          margin: 8px 0;
+          font-size: 1rem;
+          line-height: 1.5;
+        }
+      
+        .info-content ul {
+          list-style-type: disc;
+          margin-left: 20px;
+        }
+      
+        .info-content li {
+          margin: 4px 0;
+        }
+      
+        .info-content code {
+          font-family: "Courier New", Courier, monospace;
+          background-color: #e9ecef;
+          padding: 2px 4px;
+          border-radius: 4px;
+        }
 
+    details {
+      display: block; /* Ensures the details section behaves as a block-level element */
+    }
+
+    summary {
+      display: flex; /* Use flexbox for alignment */
+      align-items: center; /* Vertically aligns the arrow and text */
+      cursor: pointer; /* Makes the header clickable */
+      list-style: none; /* Removes the default marker */
+    }
+
+    summary::-webkit-details-marker {
+      display: none; /* Removes the default marker (arrow) */
+    }
+
+    summary:before {
+      content: "▶"; /* Right-pointing arrow when collapsed */
+      font-size: 1rem;
+      margin-right: 8px; /* Space between the arrow and the text */
+      transition: transform 0.3s ease; /* Smooth transition for rotation */
+    }
+
+    details[open] summary:before {
+      content: "▼"; /* Down-pointing arrow when expanded */
+    }
+
+    summary h2 {
+      margin: 0; /* Ensures proper alignment with the arrow */
+      font-size: 1.5rem; /* Adjust header size as needed */
+    }
     </style>
-  </head>
-  <body>
-    <h1>Soulash 2 Biome Explorer</h1>
-    <div id="app">
-      <div class="grid">
-        <div
-          class="tile"
-          v-for="(value, key) in biomes"
-          :key="key"
-          @click="onTileClick(key)"
-        >
-          {{ key }}
-        </div>
-      </div>
-      <div class="resources" v-if="selectedBiome">
-        <h2>Resources in {{ selectedBiome }}</h2>
-        <button @click="simulateBiome">Simulate Resource Appearance</button>
-        <div v-if="simulationResults.length">
-          <h3>Simulation Results:</h3>
-          <ul>
-            <li v-for="result in simulationResults" :key="result.id">
-              {{ result.name }} (Quantity: {{ result.quantity }})
-            </li>
-          </ul>
-        </div>
-    
-        <!-- High-Level Overall Odds Breakdown -->
-        <div class="overall-odds">
-          <h3>Overall Odds (High-Level Breakdown)</h3>
-          <ul>
-            <li v-for="item in calculateOverallOdds()" :key="item.id">
-              {{ item.name }} : {{ item.overallOdds.toFixed(2) }}%
-            </li>
-          </ul>
-        </div>
-        <div id="info-section" class="info-section">
-          <details>
-            <summary><h3>How Resource Generation Works</h2></summary>
-            <div class="info-content">
-              <p>When exploring a biome, resource generation is determined by several factors:</p>
-              <ul>
-                <li>
-                  **Group Chance**: Each group of resources has a chance to appear, expressed as a percentage (e.g., 20%).
-                  - If a group "succeeds" in its chance roll, it can contribute one resource type to the region.
-                  - If no items in the group pass their chance rolls, the group produces nothing.
-                </li>
-                <li>
-                  **Entity Chance and Rolls**: Each resource within a group has its own chance to succeed in appearing. This is rolled multiple times based on the number of `rolls` specified for the resource.
-                  - **Formula**: 
-                    <code>P(appear) = 1 - (1 - chance)<sup>rolls</sup></code>
-                  - Example: A resource with a 75% chance (`chance = 0.75`) and 3 rolls has a:
-                    <code>P(appear) = 1 - (1 - 0.75)<sup>3</sup> = 0.984375</code> (~98.44%)
-                </li>
-                <li>
-                  **Weights and Competition**: When multiple resources in a group succeed, their weights determine which one is selected.
-                  - Each resource's adjusted weight is normalized, and the winning odds are calculated as:
-                    <code>Winning Odds = (Adjusted Weight) / (Total Adjusted Weight)</code>
-                </li>
-              </ul>
-              <p>For more details, explore the granular grouping section below.</p>
-            </div>
-          </details>
-        </div>
-        <!-- Granular Grouping with Detailed Odds -->
-        <div
-        class="resource-group"
-        v-for="(group, groupName) in naturalResources[selectedBiome]"
-        :key="groupName"
-      >
-        <h3>
-          {{ groupName }} ({{ formatChance(group.chance) }}) 
-        </h3>
-        <ul>
-          <li
-            class="resource-item"
-            v-for="entity in group.entities"
-            :key="entity.id"
+    </head>
+    <body>
+      <h1>Soulash 2 Biome Explorer</h1>
+      <div id="app">
+        <div class="grid capitalize">
+          <div
+            class="tile"
+            v-for="(value, key) in biomes"
+            :key="key"
+            @click="onTileClick(key)"
           >
-            {{ getEntityName(entity.id) }}
+            {{ key.replace('_', ' ') }}
+          </div>
+        </div>
+        <div class="resources" v-if="selectedBiome">
+          <h2>Resources in <span class="capitalize">{{ selectedBiome }}</span></h2>
+          <button @click="simulateBiome">Refresh Simulation</button>
+          <div v-if="simulationResults.length">
+            <h3>Simulation Results:</h3>
             <ul>
-              <li>Chance: {{ formatChance(entity.chance) }}</li>
-              <li>Rolls: {{ entity.rolls || 1 }}</li>
-              <li>Weight: {{ entity.weight?.toFixed(2) || "1.00" }}</li>
-              <li>Winning Odds: {{ calculateWinningOdds(group, entity) }}</li>
-              <li>Overall Odds: {{ calculateAppearancePercentage(group, entity) }}</li>
+              <li v-for="result in simulationResults" :key="result.id">
+                {{ result.name }} (Quantity: {{ result.quantity }})
+              </li>
             </ul>
-          </li>
-        </ul>
+          </div>
+          <div class="tier-sections">
+            <h2>Eligible Buildings by Tier</h2>
+            <div v-for="tier in [2, 3, 4]" :key="tier" class="tier">
+              <h3>Tier {{ tier }}</h3>
+              <div class="grid">
+                <div
+                class="tile"
+                v-for="building in getBuildingsForTier(tier)"
+                :key="building.id"
+                :data-group="building.group"
+                @click="onBuildingClick(building.id)"
+              >
+                {{ building.name }}
+              </div>
+              </div>
+            </div>
+          </div>          
+          <div class="overall-odds">
+            <h3>Odds of each resource being present in <span class="capitalize">{{ selectedBiome.replace('_', ' ') }}</span></h3>
+            <ul>
+              <li v-for="item in calculateOverallOdds()" :key="item.id">
+                {{ item.name }} : {{ item.overallOdds.toFixed(2) }}%
+              </li>
+            </ul>
+          </div>
+          <div class="info-section">
+            <details>
+              <summary><h3>How Resource Generation Works</h3></summary>
+              <div class="info-content">
+                <p>Resource generation is determined by:</p>
+                <ul>
+                  <li>
+                    <strong>Group Chance</strong>: Groups have a percentage chance to appear.
+                  </li>
+                  <li>
+                    <strong>Entity Chance</strong>: Resources within a group succeed based on their chance and rolls.
+                    <code>P(appear) = 1 - (1 - chance)^rolls</code>
+                  </li>
+                  <li>
+                    <strong>Weights</strong>: When multiple resources succeed, weights determine selection odds.
+                  </li>
+                </ul>
+              </div>
+            </details>
+          </div>
+          <div
+            v-for="({ group, groupName } in sortedGroups"
+            :key="groupName"
+            class="resource-group"
+          >
+            <h3>Group: {{ groupName.toUpperCase() }} <i>(Chance: {{ formatChance(group.chance) }})</i></h3>
+            <ul>
+              <li
+                v-for="entity in group.entities"
+                :key="entity.id"
+                class="resource-item"
+              >
+                <strong>{{ getEntityName(entity.id) }}</strong>
+                <ul>
+                  <li>Chance: {{ formatChance(entity.chance) }}</li>
+                  <li>Rolls: {{ entity.rolls || 1 }}</li>
+                  <li>Weight: {{ entity.weight?.toFixed(2) || "1.00" }}</li>
+                  <li>Winning Odds: {{ calculateWinningOdds(group, entity) }}</li>
+                  <li>Overall Odds: {{ calculateAppearancePercentage(group, entity) }}</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
-      
-      
-      </div>
-    </div>
+    </body>
     
-    <script> 
+    <script>
       const { createApp } = Vue;
-
+    
       createApp({
         data() {
           return {
-            biomes: {}, // Holds the `world_tiles` property
-            naturalResources: {}, // Holds the `natural_resources` property
-            entities: {}, // Holds the `entities.entities` property
-            selectedBiome: null, // Tracks the currently selected biome
-            simulationResults: [], 
+            biomes: {},
+            biomeNames: [],
+            naturalResources: {},
+            entities: {},
+            selectedBiome: null,
+            simulationResults: [],
+            buildings: {}, // New property to store building data
           };
         },
         mounted() {
-          // Load data from JSON
-          this.biomes = mergedJsonData.world_tiles || {};
-          this.naturalResources = mergedJsonData.natural_resources || {};
-          this.entities = mergedJsonData.entities.entities || {};
+          const { world_tiles, natural_resources, entities, messages, buildings } = mergedJsonData;
+    
+          this.biomes = Object.keys(world_tiles || {}).reduce((acc, key) => {
+            if (natural_resources[key]) acc[key] = world_tiles[key];
+            return acc;
+          }, {});
+          this.naturalResources = natural_resources || {};
+          this.entities = entities.entities || {};
+          this.biomeNames = messages.biomes || [];
+          this.buildings = buildings.buildings || {};
+          this.noTakesEntities = [] // Store entities with no takes
+          // Call the method to log building-produced resource IDs with "allow_player" flag
+          this.logPlayerAllowedBuildingResourceIds();
+           // Compute entity IDs with no takes and store them
+            this.noTakesEntities = this.computeNoTakesEntities();
+
+        },
+        computed: {
+          sortedGroups() {
+            if (!this.selectedBiome) return [];
+            return Object.entries(this.naturalResources[this.selectedBiome] || {})
+              .map(([groupName, group]) => ({ groupName, group }))
+              .sort((a, b) => b.group.chance - a.group.chance);
+          },
         },
         methods: {
+          computeNoTakesEntities() {
+            const noTakesEntities = [];
+      
+            // Iterate through buildings that allow players
+            Object.values(this.buildings)
+              .filter(buildingData => buildingData.allow_player)
+              .forEach(buildingData => {
+                // Find entities with no "takes"
+                const buildingNoTakesEntities = Object.values(buildingData.produces)
+                  .filter(produceData => !produceData.takes || produceData.takes.length === 0)
+                  .flatMap(produceData => produceData.entities);
+      
+                // Check if entities are resources and add their IDs
+                buildingNoTakesEntities.forEach(entity => {
+                  const entityData = Object.values(this.entities).find(e => e.id === entity.id);
+                  if (entityData?.components.includes("resource")) {
+                    noTakesEntities.push(entity.id);
+                  }
+                });
+              });
+      
+            return noTakesEntities;
+          },
+          logPlayerAllowedBuildingResourceIds() {
+            Object.entries(this.buildings)
+              .filter(([, buildingData]) => buildingData.allow_player)
+              .forEach(([buildingKey, buildingData]) => {
+                const tier = buildingData.tier || "Unknown";
+                console.log(`Building Name: ${buildingData.name}, Building ID: ${buildingData.id} Tier: ${tier}`);
+                buildingData.produces.forEach((produce, index) => {
+                  produce.entities.forEach(entity => {
+                    console.log(`  Tier: ${tier}, Resource ID: ${entity.id}, Daily: ${entity.daily || 'N/A'}`);
+                  });
+                });
+              });
+          },
           onTileClick(biomeName) {
-
             this.selectedBiome = biomeName;
-            simulationResults = [];
+            this.simulationResults = [];
             this.simulateBiome();
           },
-          getEntityName(entityId) {
-            // Loop through all keys in the entities.entities object
-            for (const [key, entity] of Object.entries(this.entities)) {
-              if (entity.id === entityId || key === entityId) {
-                // Return the name if the ID matches
-                return entity.name || `Unknown (ID: ${entityId})`;
+          onBuildingClick(buildingId) {
+            console.log(`Building clicked: ${buildingId}`);
+            // Handle building click logic here
+          },
+          getBuildingsForTier(tier) {
+            if (!this.selectedBiome) return [];
+            const biomeResources = this.simulationResults.map(result => result.id);
+      
+            const eligibleBuildings = [];
+      
+            for (const buildingKey in this.buildings) {
+              const building = this.buildings[buildingKey];
+              const adjustedTier = building.tier + 1;
+      
+              // Skip buildings that don't allow players or have the wrong tier
+              if (!building.allow_player || adjustedTier !== tier) {
+                continue;
+              }
+      
+              let growsInThisRegion = false;
+              let hasProductWithNoGrownDependency = false;
+      
+              const allEmptyTakes = building.produces.some(produce => produce.takes && produce.takes.length === 0);
+              if (allEmptyTakes) {
+                growsInThisRegion = Object.values(building.produces).some(produceData =>
+                  Array.isArray(produceData.entities) &&
+                  produceData.entities.every(entity => biomeResources.includes(entity.id))
+                );
+              } else {
+                const allOccupiedTakes = Object.values(building.produces).some(
+                  produce =>
+                    produce.takes && Array.isArray(produce.takes) && produce.takes.length > 0
+                );
+      
+                if (allOccupiedTakes) {
+                  hasProductWithNoGrownDependency = Object.values(building.produces).some(produceData =>
+                    Array.isArray(produceData.takes) &&
+                    produceData.takes.some(take =>
+                      take && take.id && !this.noTakesEntities.includes(take.id)
+                    )
+                  );
+                }
+              }
+      
+              const isCraftableOrMilitary =
+                building.group === "military" ||
+                building.enables !== undefined ||
+                Object.values(building.produces).some(
+                  produceData => produceData.takes === "craftable"
+                );
+      
+              if (growsInThisRegion || hasProductWithNoGrownDependency || isCraftableOrMilitary) {
+                eligibleBuildings.push(building);
               }
             }
-            // Return a fallback if the ID isn't found
-            return `Unknown (ID: ${entityId})`;
+      
+            const allBuildings = [...new Set([...eligibleBuildings])];
+      
+            return allBuildings;
           },
-          formatChance(chance) {
-            // Convert the chance (e.g., 0.75) to a percentage (e.g., 75%)
-            return `${Math.round(chance * 100)}%`;
-          },
-          calculateWinningOdds(group, entity) {
-            const entityChance = entity.chance || 1;
-            const rolls = entity.rolls || 1;
+          calculateBuildingWealth(building) {
+            if (!building.produces) return "$0.00";
         
-            // Probability that the entity appears (at least one successful roll)
-            const entityAppearanceProbability = 1 - Math.pow(1 - entityChance, rolls);
+            // Step 1: Gather biome resources
+            const biomeResources = this.simulationResults.map(result => result.id);
         
-            // If there's only one entity in the group, winning odds are the appearance probability
-            if (group.entities.length === 1) {
-                return `${(entityAppearanceProbability * 100).toFixed(2)}%`;
-            }
+            // Step 2: Collect produced entities that match biome resources or dependencies
+            const validEntities = building.produces.reduce((entities, produce) => {
+              return entities.concat(
+                produce.entities.filter(entity => biomeResources.includes(entity.id))
+              );
+            }, []);
         
-            // For multiple entities, calculate normalized weight
-            // Adjusted weight for the entity
-            const entityAdjustedWeight = (entity.weight || 1) * entityAppearanceProbability;
+            // Step 3: Calculate total wealth based on valid entities
+            const totalWealth = validEntities.reduce((sum, entity) => {
+              const entityData = Object.values(this.entities).find(e => e.id === entity.id);
+              if (!entityData) return sum;
         
-            // Calculate the total adjusted weight for the group
-            const totalAdjustedWeight = group.entities.reduce((sum, e) => {
-                const eChance = e.chance || 1;
-                const eRolls = e.rolls || 1;
-                const eAppearanceProbability = 1 - Math.pow(1 - eChance, eRolls);
-                return sum + ((e.weight || 1) * eAppearanceProbability);
+              // Calculate daily wealth (daily * value)
+              const dailyValue = (entity.daily || 0) * (entityData.value || 0);
+              return sum + dailyValue;
             }, 0);
         
-            // If the total adjusted weight is zero, return 0%
-            if (totalAdjustedWeight === 0) {
-                return `0.00%`;
-            }
-        
-            // Calculate normalized weight (winning odds within the group)
-            const normalizedWeight = entityAdjustedWeight / totalAdjustedWeight;
-        
-            // Convert to percentage and round
-            return `${(normalizedWeight * 100).toFixed(2)}%`;
-        },
-        calculateAppearancePercentage(group, entity) {
-          const groupChance = group.chance || 0;
-          const entityChance = entity.chance || 1;
-          const rolls = entity.rolls || 1;
-      
-          // Probability that the entity appears (at least one successful roll)
-          const entityAppearanceProbability = 1 - Math.pow(1 - entityChance, rolls);
-      
-          // If there's only one entity in the group, overall odds are the product of group chance and entity appearance probability
-          if (group.entities.length === 1) {
-              const appearancePercentage = groupChance * entityAppearanceProbability * 100;
-              return `${appearancePercentage.toFixed(2)}%`;
-          }
-      
-          // For multiple entities, calculate normalized weight
-          // Adjusted weight for the entity
-          const entityAdjustedWeight = (entity.weight || 1) * entityAppearanceProbability;
-      
-          // Calculate the total adjusted weight for the group
-          const totalAdjustedWeight = group.entities.reduce((sum, e) => {
-              const eChance = e.chance || 1;
-              const eRolls = e.rolls || 1;
-              const eAppearanceProbability = 1 - Math.pow(1 - eChance, eRolls);
-              return sum + ((e.weight || 1) * eAppearanceProbability);
-          }, 0);
-      
-          // If the total adjusted weight is zero, return 0%
-          if (totalAdjustedWeight === 0) {
-              return `0.00%`;
-          }
-      
-          // Calculate normalized weight (winning odds within the group)
-          const normalizedWeight = entityAdjustedWeight / totalAdjustedWeight;
-      
-          // Overall appearance percentage is the product of group chance and normalized weight
-          const appearancePercentage = groupChance * normalizedWeight * 100;
-      
-          // Convert to percentage and round
-          return `${appearancePercentage.toFixed(2)}%`;
-      },       
-      calculateOverallOdds() {
-        if (!this.selectedBiome) return {};
-    
-        const resources = this.naturalResources[this.selectedBiome];
-        const overallOdds = {}; // Dictionary to store overall odds for each item
-    
-        for (const [groupName, group] of Object.entries(resources)) {
-            for (const entity of group.entities) {
-                const entityId = entity.id;
-                const entityName = this.getEntityName(entityId);
-                const overallAppearance = parseFloat(this.calculateAppearancePercentage(group, entity).replace('%', ''));
-    
-                // If the item already exists, add its odds
-                if (overallOdds[entityId]) {
-                    overallOdds[entityId].overallOdds += overallAppearance;
-                } else {
-                    // Otherwise, create a new entry
-                    overallOdds[entityId] = {
-                        id: entityId,
-                        name: entityName,
-                        overallOdds: overallAppearance,
-                    };
-                }
-            }
-        }
-    
-        return Object.values(overallOdds).sort((a, b) => b.overallOdds - a.overallOdds);
-    },    
-      simulateBiome() {
-        if (!this.selectedBiome) return;
-    
-        const resources = this.naturalResources[this.selectedBiome];
-        const mergedResults = {}; // Dictionary to store merged results by item ID
-        const extraResources = {}; // Dictionary for extras like meat
-    
-        for (const [groupName, group] of Object.entries(resources)) {
-            // Check if the group qualifies based on its chance
-            if (Math.random() > group.chance) continue;
-    
-            // Prepare entities that pass their own chance
-            const qualifyingEntities = [];
-    
-            // For each entity, perform chance checks based on the number of rolls
-            for (const entity of group.entities) {
-                const rolls = entity.rolls || 1;
-                let successes = 0;
-    
-                for (let i = 0; i < rolls; i++) {
-                    if (Math.random() <= (entity.chance || 1)) {
-                        successes++;
-                    }
-                }
-    
-                if (successes > 0) {
-                    qualifyingEntities.push({
-                        entity: entity,
-                        quantity: successes,
-                    });
-                }
-            }
-    
-            if (qualifyingEntities.length === 0) continue;
-    
-            // Calculate total adjusted weight for weighted random selection
-            const totalAdjustedWeight = qualifyingEntities.reduce(
-                (sum, item) => sum + ((item.entity.weight || 1)),
-                0
+            // Step 4: Convert pennies to dollars
+            const formattedWealth = (totalWealth / 100).toFixed(2);
+            return `$${formattedWealth}`;
+          },
+          getEntityName(id) {
+            const entity = Object.values(this.entities).find(e => e.id === id || id in this.entities);
+            return entity?.name || `Unknown (ID: ${id})`;
+          },
+          formatChance(chance) {
+            return `${Math.round((chance || 0) * 100)}%`;
+          },
+          calculateWinningOdds(group, entity) {
+            const entityChance = 1 - Math.pow(1 - (entity.chance || 1), entity.rolls || 1);
+            if (group.entities.length === 1) return `${(entityChance * 100).toFixed(2)}%`;
+            const entityWeight = (entity.weight || 1) * entityChance;
+            const totalWeight = group.entities.reduce(
+              (sum, e) => sum + (1 - Math.pow(1 - (e.chance || 1), e.rolls || 1)) * (e.weight || 1),
+              0
             );
-    
-            // Perform weighted random selection
-            const randomValue = Math.random() * totalAdjustedWeight;
-            let cumulativeWeight = 0;
-            let winner = null;
-    
-            for (const item of qualifyingEntities) {
-                cumulativeWeight += (item.entity.weight || 1);
-                if (randomValue <= cumulativeWeight) {
-                    winner = item;
-                    break;
-                }
+            return `${((entityWeight / totalWeight) * 100).toFixed(2)}%`;
+          },
+          calculateAppearancePercentage(group, entity) {
+            const groupChance = group.chance || 0;
+            const entityChance = 1 - Math.pow(1 - (entity.chance || 1), entity.rolls || 1);
+            const entityWeight = (entity.weight || 1) * entityChance;
+            const totalWeight = group.entities.reduce(
+              (sum, e) => sum + (1 - Math.pow(1 - (e.chance || 1), e.rolls || 1)) * (e.weight || 1),
+              0
+            );
+            const normalizedWeight = entityWeight / totalWeight;
+            return `${(groupChance * normalizedWeight * 100).toFixed(2)}%`;
+          },
+          calculateOverallOdds() {
+            if (!this.selectedBiome) return [];
+            const odds = {};
+            for (const [groupName, group] of Object.entries(this.naturalResources[this.selectedBiome])) {
+              group.entities.forEach(entity => {
+                const id = entity.id;
+                const name = this.getEntityName(id);
+                const appearance = parseFloat(this.calculateAppearancePercentage(group, entity).replace('%', ''));
+                odds[id] = odds[id] || { id, name, overallOdds: 0 };
+                odds[id].overallOdds += appearance;
+              });
             }
-    
-            // Add the winner to the merged results
-            if (winner) {
-                const winnerId = winner.entity.id;
-                const winnerName = this.getEntityName(winnerId);
-    
-                // If the item already exists, add the quantity
-                if (mergedResults[winnerId]) {
-                    mergedResults[winnerId].quantity += winner.quantity;
-                } else {
-                    // Otherwise, create a new entry
-                    mergedResults[winnerId] = {
-                        id: winnerId,
-                        name: winnerName,
-                        quantity: winner.quantity,
-                    };
+            return Object.values(odds).sort((a, b) => b.overallOdds - a.overallOdds);
+          },
+          simulateBiome() {
+            if (!this.selectedBiome) return;
+            const results = {};
+            const extras = {};
+            for (const [groupName, group] of Object.entries(this.naturalResources[this.selectedBiome])) {
+              if (Math.random() > group.chance) continue;
+              const qualified = group.entities.flatMap(entity => {
+                const rolls = entity.rolls || 1;
+                const successes = Array.from({ length: rolls }).filter(() => Math.random() <= (entity.chance || 1)).length;
+                return successes > 0 ? [{ entity, quantity: successes }] : [];
+              });
+              if (!qualified.length) continue;
+              const totalWeight = qualified.reduce((sum, q) => sum + (q.entity.weight || 1), 0);
+              const randomValue = Math.random() * totalWeight;
+              let winner = null;
+              let cumulative = 0;
+              for (const q of qualified) {
+                cumulative += q.entity.weight || 1;
+                if (randomValue <= cumulative) {
+                  winner = q;
+                  break;
                 }
-    
-                // Handle extras: Add their quantities to the extraResources dictionary
-                if (winner.entity.extra_ids) {
-                    for (const extraId of winner.entity.extra_ids) {
-                        if (!extraResources[extraId]) {
-                            extraResources[extraId] = {
-                                id: extraId,
-                                name: this.getEntityName(extraId),
-                                quantity: 0,
-                            };
-                        }
-                        extraResources[extraId].quantity += winner.quantity;
-                    }
-                }
+              }
+              if (winner) {
+                const id = winner.entity.id;
+                results[id] = results[id] || { id, name: this.getEntityName(id), quantity: 0 };
+                results[id].quantity += winner.quantity;
+                (winner.entity.extra_ids || []).forEach(extraId => {
+                  extras[extraId] = extras[extraId] || { id: extraId, name: this.getEntityName(extraId), quantity: 0 };
+                  extras[extraId].quantity += winner.quantity;
+                });
+              }
             }
-        }
+            this.simulationResults = [...Object.values(results), ...Object.values(extras)];
+          },
+        },
+      }).mount("#app");
+    </script>
     
-        // Combine merged results and extras into the final results array
-        this.simulationResults = [
-            ...Object.values(mergedResults), // Primary resources
-            ...Object.values(extraResources), // Extras
-        ];
-    },
-  },
-      }).mount("#app");</script>
-  </body>
-</html>
+  </html>
