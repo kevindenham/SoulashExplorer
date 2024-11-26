@@ -180,10 +180,17 @@
       margin: 0; /* Ensures proper alignment with the arrow */
       font-size: 1.5rem; /* Adjust header size as needed */
     }
+
+    .sprite-icon {
+      background-repeat: no-repeat;
+      background-size: cover; /* Adjust if needed */
+      flex-shrink: 0; /* Prevent shrinking in flex containers */
+    }
     </style>
     </head>
     <body>
       <h1>Soulash 2 Biome Explorer</h1>
+
       <div id="app">
         <div class="grid capitalize">
           <div
@@ -201,9 +208,17 @@
           <div v-if="simulationResults.length">
             <h3>Simulation Results:</h3>
             <ul>
-              <li v-for="result in simulationResults" :key="result.id">
-                {{ result.name }} (Quantity: {{ result.quantity }})
+              <li v-for="result in simulationResults" :key="result.id" style="display: flex; align-items: center; gap: 8px;">
+                <!-- Render the sprite -->
+                <span
+                  v-if="getEntitySprite(result.id)"
+                  :style="getEntitySprite(result.id)"
+                  class="sprite-icon"
+                ></span>
+                <!-- Render the item name and quantity -->
+                <span>{{ result.name }} (Quantity: {{ result.quantity }})</span>
               </li>
+              
             </ul>
           </div>
           <div class="tier-sections">
@@ -211,18 +226,28 @@
             <div v-for="tier in [2, 3, 4]" :key="tier" class="tier">
               <h3>Tier {{ tier }}</h3>
               <div class="grid">
+                <!-- Loop over the groups within each tier -->
                 <div
-                class="tile"
-                v-for="building in getBuildingsForTier(tier)"
-                :key="building.id"
-                :data-group="building.group"
-                @click="onBuildingClick(building.id)"
-              >
-                {{ building.name }}
-              </div>
+                  v-for="group in ['food', 'resources', 'producers', 'crafters', 'military']"
+                  :key="group"
+                  class="group"
+                >
+                  <div class="row">
+                    <!-- Display buildings for the current tier and group -->
+                    <div
+                      class="tile"
+                      v-for="building in getBuildingsForTierAndGroup(tier, group)"
+                      :key="building.id"
+                      :data-group="building.group"
+                      @click="onBuildingClick(building.id)"
+                    >
+                      {{ building.name }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>          
+          </div>    
           <div class="overall-odds">
             <h3>Odds of each resource being present in <span class="capitalize">{{ selectedBiome.replace('_', ' ') }}</span></h3>
             <ul>
@@ -421,6 +446,13 @@
       
             return allBuildings;
           },
+          getBuildingsForTierAndGroup(tier, group) {
+            // Assuming getBuildingsForTier(tier) returns an array of buildings for the given tier
+            return this.getBuildingsForTier(tier).filter(
+              (building) => building.group === group
+            );
+          },
+          
           calculateBuildingWealth(building) {
             if (!building.produces) return "$0.00";
         
@@ -452,44 +484,129 @@
             const entity = Object.values(this.entities).find(e => e.id === id || id in this.entities);
             return entity?.name || `Unknown (ID: ${id})`;
           },
+          getEntitySprite(entityId) {
+            const entity = Object.values(this.entities).find(e => e.id === entityId);
+            const spriteIndex = entity?.item?.image; // Access the `image` property under `item`
+            if (spriteIndex == null) return null; // Return null if no sprite is defined
+            
+            const coordinates = this.getSpriteCoordinates(spriteIndex);
+            return {
+              backgroundPosition: `${coordinates.x} ${coordinates.y}`,
+              backgroundImage: "url('./assets/gfx/equipment/items.png')",
+              backgroundSize: "640px 2112px", // Set the full sprite sheet size
+              width: coordinates.size,
+              height: coordinates.size,
+              display: "inline-block",
+            };
+          },
+          
           formatChance(chance) {
-            return `${Math.round((chance || 0) * 100)}%`;
+            // Convert the chance (e.g., 0.75) to a percentage (e.g., 75%)
+            return `${Math.round(chance * 100)}%`;
           },
           calculateWinningOdds(group, entity) {
-            const entityChance = 1 - Math.pow(1 - (entity.chance || 1), entity.rolls || 1);
-            if (group.entities.length === 1) return `${(entityChance * 100).toFixed(2)}%`;
-            const entityWeight = (entity.weight || 1) * entityChance;
-            const totalWeight = group.entities.reduce(
-              (sum, e) => sum + (1 - Math.pow(1 - (e.chance || 1), e.rolls || 1)) * (e.weight || 1),
-              0
-            );
-            return `${((entityWeight / totalWeight) * 100).toFixed(2)}%`;
-          },
-          calculateAppearancePercentage(group, entity) {
-            const groupChance = group.chance || 0;
-            const entityChance = 1 - Math.pow(1 - (entity.chance || 1), entity.rolls || 1);
-            const entityWeight = (entity.weight || 1) * entityChance;
-            const totalWeight = group.entities.reduce(
-              (sum, e) => sum + (1 - Math.pow(1 - (e.chance || 1), e.rolls || 1)) * (e.weight || 1),
-              0
-            );
-            const normalizedWeight = entityWeight / totalWeight;
-            return `${(groupChance * normalizedWeight * 100).toFixed(2)}%`;
-          },
-          calculateOverallOdds() {
-            if (!this.selectedBiome) return [];
-            const odds = {};
-            for (const [groupName, group] of Object.entries(this.naturalResources[this.selectedBiome])) {
-              group.entities.forEach(entity => {
-                const id = entity.id;
-                const name = this.getEntityName(id);
-                const appearance = parseFloat(this.calculateAppearancePercentage(group, entity).replace('%', ''));
-                odds[id] = odds[id] || { id, name, overallOdds: 0 };
-                odds[id].overallOdds += appearance;
-              });
+            const entityChance = entity.chance || 1;
+            const rolls = entity.rolls || 1;
+        
+            // Probability that the entity appears (at least one successful roll)
+            const entityAppearanceProbability = 1 - Math.pow(1 - entityChance, rolls);
+        
+            // If there's only one entity in the group, winning odds are the appearance probability
+            if (group.entities.length === 1) {
+                return `${(entityAppearanceProbability * 100).toFixed(2)}%`;
             }
-            return Object.values(odds).sort((a, b) => b.overallOdds - a.overallOdds);
-          },
+        
+            // For multiple entities, calculate normalized weight
+            // Adjusted weight for the entity
+            const entityAdjustedWeight = (entity.weight || 1) * entityAppearanceProbability;
+        
+            // Calculate the total adjusted weight for the group
+            const totalAdjustedWeight = group.entities.reduce((sum, e) => {
+                const eChance = e.chance || 1;
+                const eRolls = e.rolls || 1;
+                const eAppearanceProbability = 1 - Math.pow(1 - eChance, eRolls);
+                return sum + ((e.weight || 1) * eAppearanceProbability);
+            }, 0);
+        
+            // If the total adjusted weight is zero, return 0%
+            if (totalAdjustedWeight === 0) {
+                return `0.00%`;
+            }
+        
+            // Calculate normalized weight (winning odds within the group)
+            const normalizedWeight = entityAdjustedWeight / totalAdjustedWeight;
+        
+            // Convert to percentage and round
+            return `${(normalizedWeight * 100).toFixed(2)}%`;
+        },
+        calculateAppearancePercentage(group, entity) {
+          const groupChance = group.chance || 0;
+          const entityChance = entity.chance || 1;
+          const rolls = entity.rolls || 1;
+      
+          // Probability that the entity appears (at least one successful roll)
+          const entityAppearanceProbability = 1 - Math.pow(1 - entityChance, rolls);
+      
+          // If there's only one entity in the group, overall odds are the product of group chance and entity appearance probability
+          if (group.entities.length === 1) {
+              const appearancePercentage = groupChance * entityAppearanceProbability * 100;
+              return `${appearancePercentage.toFixed(2)}%`;
+          }
+      
+          // For multiple entities, calculate normalized weight
+          // Adjusted weight for the entity
+          const entityAdjustedWeight = (entity.weight || 1) * entityAppearanceProbability;
+      
+          // Calculate the total adjusted weight for the group
+          const totalAdjustedWeight = group.entities.reduce((sum, e) => {
+              const eChance = e.chance || 1;
+              const eRolls = e.rolls || 1;
+              const eAppearanceProbability = 1 - Math.pow(1 - eChance, eRolls);
+              return sum + ((e.weight || 1) * eAppearanceProbability);
+          }, 0);
+      
+          // If the total adjusted weight is zero, return 0%
+          if (totalAdjustedWeight === 0) {
+              return `0.00%`;
+          }
+      
+          // Calculate normalized weight (winning odds within the group)
+          const normalizedWeight = entityAdjustedWeight / totalAdjustedWeight;
+      
+          // Overall appearance percentage is the product of group chance and normalized weight
+          const appearancePercentage = groupChance * normalizedWeight * 100;
+      
+          // Convert to percentage and round
+          return `${appearancePercentage.toFixed(2)}%`;
+      },       
+      calculateOverallOdds() {
+        if (!this.selectedBiome) return {};
+    
+        const resources = this.naturalResources[this.selectedBiome];
+        const overallOdds = {}; // Dictionary to store overall odds for each item
+    
+        for (const [groupName, group] of Object.entries(resources)) {
+            for (const entity of group.entities) {
+                const entityId = entity.id;
+                const entityName = this.getEntityName(entityId);
+                const overallAppearance = parseFloat(this.calculateAppearancePercentage(group, entity).replace('%', ''));
+    
+                // If the item already exists, add its odds
+                if (overallOdds[entityId]) {
+                    overallOdds[entityId].overallOdds += overallAppearance;
+                } else {
+                    // Otherwise, create a new entry
+                    overallOdds[entityId] = {
+                        id: entityId,
+                        name: entityName,
+                        overallOdds: overallAppearance,
+                    };
+                }
+            }
+        }
+    
+        return Object.values(overallOdds).sort((a, b) => b.overallOdds - a.overallOdds);
+    },    
           simulateBiome() {
             if (!this.selectedBiome) return;
             const results = {};
@@ -525,7 +642,36 @@
             }
             this.simulationResults = [...Object.values(results), ...Object.values(extras)];
           },
+          getSpriteCoordinates(index) {
+            const sheetWidth = 640; // Width of the sprite sheet in pixels
+            const sheetHeight = 2112; // Height of the sprite sheet in pixels
+            const spritesPerRow = 20; // Number of sprites per row
+            const spriteSize = sheetWidth / spritesPerRow; // Calculate sprite size (square)
+          
+            // Calculate total rows in the sheet
+            const totalRows = sheetHeight / spriteSize;
+          
+            // Calculate row and column based on bottom-right origin
+            const row = Math.floor(index / spritesPerRow); // Determine the row (from the bottom)
+            const col = index % spritesPerRow; // Determine the column (from right to left)
+          
+            // Convert from bottom-right origin to top-left origin
+            const topRow = totalRows - 1 - row;
+            const rightCol = col; // Keep the column unflipped for right-to-left arrangement
+          
+            // Calculate `background-position`
+            const x = rightCol * spriteSize; // X-coordinate (horizontal offset, keep as-is for right-to-left)
+            const y = topRow * spriteSize; // Y-coordinate (vertical offset)
+          
+            return {
+              x: -x + "px", // Negative values for `background-position`
+              y: -y + "px",
+              size: spriteSize + "px" // Optional: the size of the sprite
+            };
+          }
         },
+       
+        
       }).mount("#app");
     </script>
     
